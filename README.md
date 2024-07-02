@@ -6,7 +6,7 @@ This project generates a high-quality Alpaca-style dataset from input text files
 
 1. Clone the repository:
    ```
-   git clone https://github.com/ekatraone/Alpaca-style-Dataset-Generator.git
+   git clone https://github.com/ekatraone/alpaca-dataset-generator.git
    cd alpaca-dataset-generator
    ```
 
@@ -40,6 +40,14 @@ This project generates a high-quality Alpaca-style dataset from input text files
    - `--num_examples`: Number of examples to generate (default: 1000)
 
 3. The generated dataset will be saved in the specified output file.
+
+## Releases
+
+For information about the latest releases and changes, please refer to the [CHANGELOG.md](CHANGELOG.md) file.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
