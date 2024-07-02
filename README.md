@@ -6,7 +6,7 @@ This project generates a high-quality Alpaca-style dataset from input text files
 
 1. Clone the repository:
    ```
-   git clone https://github.com/your-username/alpaca-dataset-generator.git
+   git clone https://github.com/ekatraone/Alpaca-style-Dataset-Generator.git
    cd alpaca-dataset-generator
    ```
 
