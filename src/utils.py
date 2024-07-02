@@ -1,5 +1,6 @@
 import json
 import torch
+import os
 from typing import List, Dict, Any
 from docx import Document
 import PyPDF2
@@ -28,6 +29,7 @@ def read_file(file_path: str) -> str:
         return read_docx_file(file_path)
     else:
         raise ValueError(f"Unsupported file type: {ext}")
+
 
 def preprocess_text(text: str) -> str:
     return ' '.join(text.split())
