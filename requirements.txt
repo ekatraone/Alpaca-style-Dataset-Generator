@@ -1,0 +1,7 @@
+torch
+transformers
+sentence-transformers
+nltk
+PyPDF2
+python-docx
+tqdm
