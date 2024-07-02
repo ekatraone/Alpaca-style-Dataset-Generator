@@ -5,3 +5,4 @@ nltk
 PyPDF2
 python-docx
 tqdm
+SentencePiece
