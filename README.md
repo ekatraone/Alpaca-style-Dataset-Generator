@@ -1,49 +1,87 @@
 # Alpaca-style Dataset Generator
 
-This project generates a high-quality Alpaca-style dataset from input text files, PDFs, and Word documents.
+This project generates a high-quality Alpaca-style dataset from input text files, PDFs, and Word documents. It features optimized performance, GPU acceleration, and customizable output.
+
+## Features
+
+- Multi-threaded data loading from various file formats (txt, pdf, docx)
+- Batch processing for efficient dataset generation
+- GPU acceleration (if available)
+- Separate raw and validated output files
+- Progress tracking for all major steps
+- Customizable configuration
 
 ## Setup
 
 1. Clone the repository:
-   ```
-   git clone https://github.com/ekatraone/alpaca-dataset-generator.git
-   cd alpaca-dataset-generator
-   ```
+
+```bash
+git clone https://github.com/ekatraone/alpaca-dataset-generator.git
+cd alpaca-dataset-generator
+```
 
 2. Create a virtual environment and activate it:
-   ```
-   python -m venv venv
-   source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
-   ```
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
+```
 
 3. Install the required packages:
-   ```
-   pip install -r requirements.txt
-   ```
 
-4. Download NLTK stopwords:
-   ```
-   python -c "import nltk; nltk.download('stopwords')"
-   ```
+```bash
+pip install -r requirements.txt
+```
+
+4. Download NLTK data:
+
+```bash
+python -m nltk.downloader punkt stopwords
+```
+
+## Configuration
+
+Open `src/config.py` and adjust the settings as needed:
+
+- `input_folder`: Path to your input data folder
+- `output_file`: Path for the raw output file
+- `validated_output_file`: Path for the validated output file
+- `num_examples`: Number of examples to generate
+- `batch_size`: Batch size for processing
+- `max_workers`: Number of worker threads for data loading
 
 ## Usage
 
 1. Place your input files (.txt, .pdf, .docx) in the `data/input/` directory.
 
 2. Run the script:
-   ```
-   python src/main.py data/input output/dataset.jsonl --num_examples 1000
-   ```
 
-   - `data/input`: Input folder containing text, PDF, and Word files
-   - `output/dataset.jsonl`: Output JSONL file for the generated dataset
-   - `--num_examples`: Number of examples to generate (default: 1000)
+```bash
+python src/main.py data/input output/raw_dataset.jsonl output/validated_dataset.jsonl --num_examples 1000
+```
 
-3. The generated dataset will be saved in the specified output file.
+   * `data/input`: Input folder containing text, PDF, and Word files
+   * `output/raw_dataset.jsonl`: Output JSONL file for all generated examples
+   * `output/validated_dataset.jsonl`: Output JSONL file for validated examples
+   * `--num_examples`: Number of examples to generate (default: 1000)
+
+3. The script will generate two files:
+   - A raw output file containing all generated examples
+   - A validated output file containing only the examples that passed validation
+
+## Customization
+
+- To modify the types of examples generated, edit the `instructions` list in `src/dataset_generator.py`.
+- To adjust validation criteria, modify the `is_valid_output` function in `src/utils.py`.
+
+## Troubleshooting
+
+- If you encounter CUDA out-of-memory errors, try reducing the `batch_size` in `src/config.py`.
+- If the process is too slow, you can try increasing `max_workers` or `batch_size`, but be cautious of memory usage.
 
 ## Releases
 
-For information about the latest releases and changes, please refer to the [CHANGELOG.md](CHANGELOG.md) file.
+For information about the latest releases and changes, please refer to the CHANGELOG.md file.
 
 ## Contributing
 
@@ -51,4 +89,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-[MIT License](https://opensource.org/licenses/MIT)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
