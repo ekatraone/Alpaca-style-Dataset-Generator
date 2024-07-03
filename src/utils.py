@@ -4,22 +4,47 @@ import os
 from typing import List, Dict, Any
 from docx import Document
 import PyPDF2
+import nltk
 from nltk.corpus import stopwords
 from collections import Counter
+from transformers import PreTrainedTokenizer, PreTrainedModel
+from sentence_transformers import SentenceTransformer
+
+nltk.download('stopwords', quiet=True)
+
+# Import CONFIG if it's defined in a separate file
+# from config import CONFIG
 
 def read_text_file(file_path: str) -> str:
-    with open(file_path, 'r', encoding='utf-8') as file:
-        return file.read()
+    """Read content from a text file."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return file.read()
+    except IOError as e:
+        print(f"Error reading text file {file_path}: {e}")
+        return ""
 
 def read_pdf_file(file_path: str) -> str:
-    reader = PyPDF2.PdfReader(file)
-    return ' '.join([page.extract_text() for page in reader.pages])
+    """Read content from a PDF file."""
+    try:
+        with open(file_path, 'rb') as file:
+            reader = PyPDF2.PdfReader(file)
+            return ' '.join([page.extract_text() for page in reader.pages])
+    except Exception as e:
+        print(f"Error reading PDF file {file_path}: {e}")
+        return ""
 
 def read_docx_file(file_path: str) -> str:
-    doc = Document(file_path)
-    return ' '.join([paragraph.text for paragraph in doc.paragraphs])
+    """Read content from a DOCX file."""
+    try:
+        doc = Document(file_path)
+        return ' '.join([paragraph.text for paragraph in doc.paragraphs])
+    except Exception as e:
+        print(f"Error reading DOCX file {file_path}: {e}")
+        return ""
 
 def read_file(file_path: str) -> str:
+    """Read content from a file based on its extension."""
     _, ext = os.path.splitext(file_path.lower())
     if ext == '.txt':
         return read_text_file(file_path)
@@ -30,29 +55,66 @@ def read_file(file_path: str) -> str:
     else:
         raise ValueError(f"Unsupported file type: {ext}")
 
-
 def preprocess_text(text: str) -> str:
+    """Preprocess the input text by removing extra whitespace."""
     return ' '.join(text.split())
 
 def extract_keywords(text: str, n: int = 5) -> List[str]:
+    """Extract the most common keywords from the text."""
     stop_words = set(stopwords.words('english'))
     words = [word.lower() for word in text.split() if word.isalnum()]
     word_freq = Counter(word for word in words if word not in stop_words)
     return [word for word, _ in word_freq.most_common(n)]
 
-def generate_gpt2_output(tokenizer, model, prompt: str, device: torch.device, max_length: int = 50) -> str:
-    input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device)
+def generate_gpt2_output(
+    tokenizer: PreTrainedTokenizer,
+    model: PreTrainedModel,
+    prompt: str,
+    device: torch.device,
+    max_length: int = 50
+) -> str:
+    """Generate output using a GPT-2 model."""
+    inputs = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512)
+    input_ids = inputs.input_ids.to(device)
+    attention_mask = inputs.attention_mask.to(device)
+    
     with torch.no_grad():
-        outputs = model.generate(input_ids, max_length=len(input_ids[0]) + max_length, num_return_sequences=1, no_repeat_ngram_size=2, pad_token_id=tokenizer.eos_token_id)
-    return tokenizer.decode(outputs[0][len(input_ids[0]):], skip_special_tokens=True)
+        outputs = model.generate(
+            input_ids=input_ids,
+            attention_mask=attention_mask,
+            max_length=input_ids.shape[1] + max_length,
+            num_return_sequences=1,
+            no_repeat_ngram_size=2,
+            pad_token_id=tokenizer.eos_token_id,
+            do_sample=True,
+            top_k=50,
+            top_p=0.95,
+        )
+    
+    generated_text = tokenizer.decode(outputs[0][input_ids.shape[1]:], skip_special_tokens=True)
+    return generated_text.strip()
 
-def generate_t5_output(tokenizer, model, prefix: str, input_text: str, device: torch.device, max_length: int = 100) -> str:
+def generate_t5_output(
+    tokenizer: PreTrainedTokenizer,
+    model: PreTrainedModel,
+    prefix: str,
+    input_text: str,
+    device: torch.device,
+    max_length: int = 100
+) -> str:
+    """Generate output using a T5 model."""
     input_ids = tokenizer(f"{prefix}: {input_text}", return_tensors="pt", max_length=512, truncation=True).input_ids.to(device)
     with torch.no_grad():
         outputs = model.generate(input_ids, max_length=max_length, num_return_sequences=1, do_sample=True, top_k=50, top_p=0.95)
     return tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-def is_valid_output(instruction_type: str, output: str, input_text: str, sentence_model) -> bool:
+def is_valid_output(
+    instruction_type: str,
+    output: str,
+    input_text: str,
+    sentence_model: SentenceTransformer
+) -> bool:
+    """Validate the generated output based on instruction type and similarity to input."""
     if len(output.split()) < 3 or len(output) < 10:
         return False
 
@@ -77,6 +139,7 @@ def is_valid_output(instruction_type: str, output: str, input_text: str, sentenc
     return True
 
 def save_to_jsonl(data: List[Dict[str, Any]], output_file: str):
+    """Save data to a JSONL file."""
     with open(output_file, 'w', encoding='utf-8') as f:
         for item in data:
             json.dump(item, f, ensure_ascii=False)

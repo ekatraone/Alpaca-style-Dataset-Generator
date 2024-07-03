@@ -1,16 +1,25 @@
-import torch
-from typing import List, Dict, Any
-from collections import Counter
 import random
+from typing import List, Dict, Any
 from tqdm import tqdm
-from nltk.tokenize import sent_tokenize
-from utils import preprocess_text, generate_gpt2_output, generate_t5_output, extract_keywords, is_valid_output
+import torch
+from torch.utils.data import DataLoader, Dataset
+from utils import generate_gpt2_output, generate_t5_output, extract_keywords
 
-def generate_dataset(num_examples: int, input_texts: List[str], models: Dict, device: torch.device) -> List[Dict[str, Any]]:
-    dataset = []
-    instruction_type_counts = Counter()
+class TextDataset(Dataset):
+    def __init__(self, texts, instructions):
+        self.texts = texts
+        self.instructions = instructions
 
-    INSTRUCTION_TYPES = [
+    def __len__(self):
+        return len(self.texts)
+
+    def __getitem__(self, idx):
+        text = self.texts[idx]
+        instruction_type, instruction = random.choice(self.instructions)
+        return text, instruction_type, instruction
+
+def generate_dataset(input_texts: List[str], models: Dict) -> List[Dict[str, Any]]:
+    instructions = [
         ("summarize", "Provide a concise one-sentence summary of the following text:"),
         ("keyword", "Extract 3-5 main keywords or key phrases from the following text:"),
         ("title", "Generate a short, engaging title for the following text:"),
@@ -19,49 +28,46 @@ def generate_dataset(num_examples: int, input_texts: List[str], models: Dict, de
         ("paraphrase", "Rewrite the following text in your own words, maintaining its core meaning:"),
     ]
 
-    with tqdm(total=num_examples, desc="Generating examples", unit="example") as pbar:
-        while len(dataset) < num_examples:
-            instruction_type, instruction = random.choice(INSTRUCTION_TYPES)
+    dataset = TextDataset(input_texts, instructions)
+    dataloader = DataLoader(dataset, batch_size=CONFIG['batch_size'], shuffle=True, num_workers=CONFIG['max_workers'])
 
-            if instruction_type_counts[instruction_type] >= num_examples // len(INSTRUCTION_TYPES):
-                continue
+    examples = []
+    
+    with tqdm(total=CONFIG['num_examples'], desc="Generating examples", unit="example") as pbar:
+        for batch in dataloader:
+            texts, instruction_types, instructions = batch
+            batch_examples = generate_batch(models, texts, instruction_types, instructions)
+            examples.extend(batch_examples)
+            pbar.update(len(batch_examples))
+            if len(examples) >= CONFIG['num_examples']:
+                break
 
-            input_text = random.choice(input_texts)
-            sentences = sent_tokenize(input_text)
-            num_sentences = min(len(sentences), random.randint(1, 3))
-            text_sample = " ".join(sentences[:num_sentences])
-            text_sample = preprocess_text(text_sample)
+    return examples[:CONFIG['num_examples']]
 
-            example = generate_example(models, device, instruction_type, instruction, text_sample)
-            if example:
-                dataset.append(example)
-                instruction_type_counts[instruction_type] += 1
-                pbar.update(1)
-
-    return dataset
-
-def generate_example(models: Dict, device: torch.device, instruction_type: str, instruction: str, input_text: str) -> Dict[str, Any]:
-    max_attempts = 5
-    for _ in range(max_attempts):
+def generate_batch(models: Dict, texts: List[str], instruction_types: List[str], instructions: List[str]) -> List[Dict[str, Any]]:
+    batch_examples = []
+    
+    for text, instruction_type, instruction in zip(texts, instruction_types, instructions):
         if instruction_type == "summarize":
-            output = generate_t5_output(models["t5_tokenizer"], models["t5_model"], "summarize", input_text, device)
+            output = generate_t5_output(models["t5_tokenizer"], models["t5_model"], "summarize", text, CONFIG['device'])
         elif instruction_type == "paraphrase":
-            output = generate_t5_output(models["t5_tokenizer"], models["t5_model"], "paraphrase", input_text, device)
+            output = generate_t5_output(models["t5_tokenizer"], models["t5_model"], "paraphrase", text, CONFIG['device'])
         elif instruction_type == "keyword":
-            keywords = extract_keywords(input_text)
+            keywords = extract_keywords(text)
             output = ", ".join(keywords)
         elif instruction_type == "sentiment":
-            sentiment = models["sentiment_pipeline"](input_text)[0]
-            explanation = generate_gpt2_output(models["gpt2_tokenizer"], models["gpt2_model"], f"Explain why the sentiment is {sentiment['label']}: ", device)
+            sentiment = models["sentiment_pipeline"](text)[0]
+            explanation = generate_gpt2_output(models["gpt2_tokenizer"], models["gpt2_model"], f"Explain why the sentiment is {sentiment['label']}: ", CONFIG['device'])
             output = f"{sentiment['label'].capitalize()}. {explanation}"
         else:
-            prompt = f"{instruction}\n\nText: {input_text}\n\nOutput:"
-            output = generate_gpt2_output(models["gpt2_tokenizer"], models["gpt2_model"], prompt, device)
+            prompt = f"{instruction}\n\nText: {text}\n\nOutput:"
+            output = generate_gpt2_output(models["gpt2_tokenizer"], models["gpt2_model"], prompt, CONFIG['device'])
 
-        if is_valid_output(instruction_type, output, input_text, models["sentence_model"]):
-            return {
-                "instruction": instruction,
-                "input": input_text,
-                "output": output
-            }
-    return None
+        batch_examples.append({
+            "instruction": instruction,
+            "input": text,
+            "output": output,
+            "instruction_type": instruction_type
+        })
+
+    return batch_examples
