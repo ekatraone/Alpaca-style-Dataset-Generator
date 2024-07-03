@@ -11,6 +11,34 @@ This project generates a high-quality Alpaca-style dataset from input text files
 - Progress tracking for all major steps
 - Customizable configuration
 
+## Project Structure
+
+```
+alpaca-dataset-generator/
+│
+├── src/
+│   ├── main.py
+│   ├── config.py
+│   ├── data_loader.py
+│   ├── model_setup.py
+│   ├── dataset_generator.py
+│   ├── validation.py
+│   └── utils.py
+│
+├── data/
+│   └── input/
+│       ├── file1.txt
+│       ├── file2.pdf
+│       └── file3.docx
+│
+├── output/
+│   ├── raw_dataset.jsonl
+│   └── validated_dataset.jsonl
+│
+├── requirements.txt
+└── README.md
+```
+
 ## Setup
 
 1. Clone the repository:
@@ -43,9 +71,9 @@ python -m nltk.downloader punkt stopwords
 
 Open `src/config.py` and adjust the settings as needed:
 
-- `input_folder`: Path to your input data folder
-- `output_file`: Path for the raw output file
-- `validated_output_file`: Path for the validated output file
+- `input_folder`: Path to your input data folder (default: 'data/input')
+- `output_file`: Path for the raw output file (default: 'output/raw_dataset.jsonl')
+- `validated_output_file`: Path for the validated output file (default: 'output/validated_dataset.jsonl')
 - `num_examples`: Number of examples to generate
 - `batch_size`: Batch size for processing
 - `max_workers`: Number of worker threads for data loading
@@ -57,17 +85,14 @@ Open `src/config.py` and adjust the settings as needed:
 2. Run the script:
 
 ```bash
-python src/main.py data/input output/raw_dataset.jsonl output/validated_dataset.jsonl --num_examples 1000
+python src/main.py --num_examples 1000
 ```
 
-   * `data/input`: Input folder containing text, PDF, and Word files
-   * `output/raw_dataset.jsonl`: Output JSONL file for all generated examples
-   * `output/validated_dataset.jsonl`: Output JSONL file for validated examples
    * `--num_examples`: Number of examples to generate (default: 1000)
 
-3. The script will generate two files:
-   - A raw output file containing all generated examples
-   - A validated output file containing only the examples that passed validation
+3. The script will generate two files in the `output/` directory:
+   - `raw_dataset.jsonl`: Contains all generated examples
+   - `validated_dataset.jsonl`: Contains only the examples that passed validation
 
 ## Customization
 
