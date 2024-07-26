@@ -1,5 +1,7 @@
+import torch
 from transformers import GPT2LMHeadModel, GPT2Tokenizer, T5ForConditionalGeneration, T5Tokenizer, pipeline
 from sentence_transformers import SentenceTransformer
+from config import CONFIG
 
 def setup_models():
     models = {}

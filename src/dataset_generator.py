@@ -4,6 +4,7 @@ from tqdm import tqdm
 import torch
 from torch.utils.data import DataLoader, Dataset
 from utils import generate_gpt2_output, generate_t5_output, extract_keywords
+from config import CONFIG
 
 class TextDataset(Dataset):
     def __init__(self, texts, instructions):
