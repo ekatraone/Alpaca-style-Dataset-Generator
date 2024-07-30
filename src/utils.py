@@ -13,7 +13,7 @@ from sentence_transformers import SentenceTransformer
 nltk.download('stopwords', quiet=True)
 
 # Import CONFIG if it's defined in a separate file
-# from config import CONFIG
+from config import CONFIG
 
 def read_text_file(file_path: str) -> str:
     """Read content from a text file."""

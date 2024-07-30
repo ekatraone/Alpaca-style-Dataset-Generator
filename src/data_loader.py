@@ -3,6 +3,7 @@ from typing import List
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 from utils import read_file, preprocess_text
+from config import CONFIG
 
 def load_input_data(input_folder: str) -> List[str]:
     texts = []
